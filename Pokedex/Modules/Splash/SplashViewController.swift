@@ -19,12 +19,13 @@ class SplashViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         model = SplashViewModel()
-        model.fetchData()
-        
-        model.loadCompleted = { [weak self] in
+        model.fetchData { [weak self] in
             let pokemonList = self?.model.pokemonList
-            let viewController = PokemonListViewController.getViewController(pokemonList)
-            self?.present(viewController, animated: true, completion: nil)
+            guard let navBar = UIStoryboard.init(storyboard: .pokemon).instantiateInitialViewController() as? UINavigationController,
+                let pokemonListVC = navBar.viewControllers.first as? PokemonListViewController else { return }
+            pokemonListVC.model = PokemonListViewModel(list: pokemonList)
+            System.changeRootController(navBar)
+        
         }
     }
 }

@@ -11,31 +11,33 @@ import Alamofire
 import AlamofireObjectMapper
 
 class SplashViewModel {
-    var loadCompleted: (() -> Void)?
     var pokemonList: PokemonList?
+    let dispatchGroup = DispatchGroup()
     
-    func fetchData() {
-        fetchPokemonList { [weak self] (pokemonList) in
-            self?.pokemonList = pokemonList
-            self?.loadCompleted?()
+    func fetchData(completion: @escaping (() -> Void)) {
+        fetchPokemonList()
+        dispatchGroup.notify(queue: .main) {
+            completion()
         }
     }
     
-    fileprivate func fetchPokemonList(completion: ((PokemonList?) -> Void)?) {
+    fileprivate func fetchPokemonList() {
         guard let url = Endpoint.shared.get(.pokemon) else {
             print("Failed to get endpoint url")
-            completion?(nil)
             return
         }
-        Alamofire.request(url).responseObject { (response: DataResponse<PokemonList>) in
+        
+        dispatchGroup.enter()
+        Alamofire.request(url).responseObject { [weak self] (response: DataResponse<PokemonList>) in
             if let error = response.error {
                 print(error)
-                completion?(nil)
+                self?.dispatchGroup.leave()
                 return
             }
             
             guard let pokemonListResponse = response.result.value else { return }
-            completion?(pokemonListResponse)
+            self?.pokemonList = pokemonListResponse
+            self?.dispatchGroup.leave()
         }
     }
 }
